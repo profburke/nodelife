@@ -1,5 +1,4 @@
-#define LIVE (1)
-#define DEAD (0)
+#include "ca.h"
 
 #define ONBOARD(x, y) \
   ( ((x) >= 0) && ((x) < LCDWIDTH) && ((y) >= 0) && ((y) < LCDHEIGHT) )
@@ -10,7 +9,7 @@
 #define COORDINATES_TO_SCREENBYTE(x, y) \
   ((x) + ((y)/8) * LCDWIDTH)
 
-static uint8_t grid[2][LCDWIDTH * (LCDHEIGHT/8)];
+static uint8_t grid[2][LCDWIDTH * (LCDHEIGHT / 8)];
 static uint8_t CURRENT = 0;
 static uint8_t NEXT = 1;
 static uint8_t p = 20;
@@ -19,10 +18,49 @@ void clearGrids() {
   memset(grid, 0, sizeof(grid));
 }
 
+// TODO: clean up this function, clear(), and get()
+// by making use of bitClear(), bitSet(), bitWrite(), and bitRead()
+void set(uint8_t gridIndex, uint8_t x, uint8_t y) {
+  if (!ONBOARD(x, y)) {
+    return;
+  }
+  if (!VALID_GRID(gridIndex)) {
+    return;
+  }
+
+  grid[gridIndex][COORDINATES_TO_SCREENBYTE(x, y)] |= _BV((y % 8));
+}
+
+void clear(uint8_t gridIndex, uint8_t x, uint8_t y) {
+  if (!ONBOARD(x, y)) {
+    return;
+  }
+  if (!VALID_GRID(gridIndex)) {
+    return;
+  }
+
+  grid[gridIndex][COORDINATES_TO_SCREENBYTE(x, y)] &= ~_BV((y % 8));
+}
+
+uint8_t get(uint8_t gridIndex, uint8_t x, uint8_t y) {
+  if (!ONBOARD(x, y)) {
+    return DEAD;
+  }
+  if (!VALID_GRID(gridIndex)) {
+    return DEAD;
+  }
+
+  uint8_t contents = grid[gridIndex][COORDINATES_TO_SCREENBYTE(x, y)];
+
+  return ( (contents & _BV((y % 8))) > 0);
+}
+
 // TODO: replace with memcpy and getScreenBuffer
 void grid2screen(uint8_t gridIndex) {
-  if (!VALID_GRID(gridIndex)) { return; }
-  
+  if (!VALID_GRID(gridIndex)) {
+    return;
+  }
+
   for (uint8_t x = 0; x < LCDWIDTH; x++) {
     for (uint8_t y = 0; y < LCDHEIGHT; y++) {
       uint8_t value = get(gridIndex, x, y);
@@ -32,33 +70,10 @@ void grid2screen(uint8_t gridIndex) {
   }
 }
 
-// TODO: clean up this function, clear(), and get()
-// by making use of bitClear(), bitSet(), bitWrite(), and bitRead()
-void set(uint8_t gridIndex, uint8_t x, uint8_t y) {
-  if (!ONBOARD(x, y)) { return; }
-  if (!VALID_GRID(gridIndex)) { return; }
-  
-  grid[gridIndex][COORDINATES_TO_SCREENBYTE(x, y)] |= _BV((y % 8));
-}
-
-void clear(uint8_t gridIndex, uint8_t x, uint8_t y) {
-  if (!ONBOARD(x, y)) { return; }
-  if (!VALID_GRID(gridIndex)) { return; }
-
-  grid[gridIndex][COORDINATES_TO_SCREENBYTE(x, y)] &= ~_BV((y % 8));
-}
-
-uint8_t get(uint8_t gridIndex, uint8_t x, uint8_t y) {
-  if (!ONBOARD(x, y)) { return DEAD; }
-  if (!VALID_GRID(gridIndex)) { return DEAD; }
-
-  uint8_t contents = grid[gridIndex][COORDINATES_TO_SCREENBYTE(x, y)];
-
-  return ( (contents & _BV((y % 8))) > 0);
-}
-
 void randomFill(uint8_t gridIndex, uint8_t p) {
-  if (!VALID_GRID(gridIndex)) { return; }
+  if (!VALID_GRID(gridIndex)) {
+    return;
+  }
 
   for (uint8_t x = 0; x < LCDWIDTH; x++) {
     for (uint8_t y = 0; y < LCDHEIGHT; y++) {
@@ -72,8 +87,8 @@ void randomFill(uint8_t gridIndex, uint8_t p) {
 }
 
 void swapGrids() {
-  CURRENT = 1 - CURRENT; 
-  NEXT = 1 - NEXT; 
+  CURRENT = 1 - CURRENT;
+  NEXT = 1 - NEXT;
 }
 
 void showGrid() {
@@ -82,16 +97,20 @@ void showGrid() {
 }
 
 uint8_t calculate(uint8_t currentValue, uint8_t nNeighbors) {
-  if ( (currentValue == LIVE) && ((nNeighbors == 2) || (nNeighbors == 3)) ) { return LIVE; }
+  if ( (currentValue == LIVE) && ((nNeighbors == 2) || (nNeighbors == 3)) ) {
+    return LIVE;
+  }
 
-  if ( /* currentValue == DEAD && */ (nNeighbors == 3) ) { return LIVE; }
+  if ( /* currentValue == DEAD && */ (nNeighbors == 3) ) {
+    return LIVE;
+  }
 
   return DEAD;
 }
 
 uint8_t countNeighbors(uint8_t gridIndex, uint8_t x, uint8_t y) {
   uint8_t count = 0;
-  
+
   count += get(gridIndex, x - 1, y - 1);
   count += get(gridIndex, x - 1, y);
   count += get(gridIndex, x - 1, y + 1);
@@ -100,7 +119,7 @@ uint8_t countNeighbors(uint8_t gridIndex, uint8_t x, uint8_t y) {
   count += get(gridIndex, x + 1, y - 1);
   count += get(gridIndex, x + 1, y);
   count += get(gridIndex, x + 1, y + 1);
-  
+
   return count;
 }
 
@@ -125,7 +144,7 @@ void resetCA() {
   _runCA = 1;
   _resetCA = 0;
   erase(4, LCDHEIGHT + 2, LCDWIDTH - 8, 12);
-  randomFill(CURRENT, p);  
+  randomFill(CURRENT, p);
   showGrid();
   displayStep();
 }

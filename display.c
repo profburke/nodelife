@@ -1,3 +1,4 @@
+#include "display.h"
 
 void erase(uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
   OLEDDISPLAY_COLOR currentColor = display.getColor();

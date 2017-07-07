@@ -33,15 +33,16 @@
 #include <ESP8266WebServer.h>
 #include "SSD1306.h"
 
+#include "nodelife.h"
+#include "ca.h"
+#include "display.h"
+#include "webserver.h"
+
 const char *ssid = "nodelife";
 const char *password = "itsybitsyspider";
 
 ESP8266WebServer server(80);
 SSD1306  display(0x3c, D3, D5);
-
-#define STATUSHEIGHT (16)
-#define LCDWIDTH (DISPLAY_WIDTH)
-#define LCDHEIGHT (DISPLAY_HEIGHT - STATUSHEIGHT)
 
 static uint16_t generation = 0;
 
@@ -56,4 +57,46 @@ uint8_t _resetCA = 0;
 // TODO: add host name using mDNS
 // TODO: use raw string or file system for better HTML pages
 
+
+void initAccessPoint() {  
+  Serial.println();
+  Serial.print("Configuring access point...");
+  WiFi.softAP(ssid, password);
+
+  IPAddress myIP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(myIP);
+}
+
+void setup() {
+  randomSeed(analogRead(0));
+
+  delay(1000);
+  Serial.begin(115200);
+  
+  initDisplay();
+  initAccessPoint();
+  initWebServer();  
+  
+  clearGrids();
+  resetCA();
+
+  delay(150);
+}
+
+void loop() {
+  if (_runCA) {
+    if (_resetCA) {
+      resetCA();
+    } else {
+     updateBuffer();
+     displayStep();
+     generation += 1;
+     showGrid();
+   }
+  }
+  
+  server.handleClient();
+  delay(250);
+}
 
